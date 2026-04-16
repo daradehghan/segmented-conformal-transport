@@ -1,0 +1,63 @@
+{
+  "source": "Machine-readable manuscript settings mirror, synchronized with the benchmark defaults.",
+  "real_data": {
+    "evaluation_grid_size": 19,
+    "sct": {
+      "train_grid_size": 49,
+      "hourly": {
+        "rho": 0.99,
+        "n_eff_min": 50,
+        "step_schedule": "min(0.20, 1 / sqrt(n))",
+        "detector": {
+          "type": "CUSUMNorm",
+          "kappa": 0.02,
+          "threshold": 0.2
+        },
+        "cooldown": 168,
+        "confirm": 3
+      },
+      "monthly": {
+        "rho": 0.995,
+        "n_eff_min": 24,
+        "step_schedule": "min(0.20, 1 / sqrt(n))",
+        "detector": {
+          "type": "CUSUMNorm",
+          "kappa": 0.02,
+          "threshold": 0.2
+        },
+        "cooldown": 12,
+        "confirm": 2
+      }
+    },
+    "aci": {
+      "gamma": 0.005
+    },
+    "split_cp": {
+      "hourly_n_cal": 336,
+      "monthly_n_cal": 36
+    }
+  },
+  "synthetic": {
+    "n_replicates": 10,
+    "seed_base": 20260306,
+    "sct": {
+      "grid_size": 49,
+      "rho": 0.99,
+      "n_eff_min": 30,
+      "step_schedule": "min(0.20, 1 / sqrt(n))",
+      "detector": {
+        "type": "CUSUMNorm",
+        "kappa": 0.02,
+        "threshold": 0.2
+      },
+      "cooldown": 100,
+      "confirm": 3
+    },
+    "aci": {
+      "gamma": 0.005
+    },
+    "split_cp": {
+      "n_cal": 300
+    }
+  }
+}

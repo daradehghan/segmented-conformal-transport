@@ -1,0 +1,56 @@
+{
+  "provenance": "Reconstructed from tsconformal.zip, the recovered Colab notebook, and the bundled benchmark outputs.",
+  "cache_stage": {
+    "script": "benchmarks/cache_fm_forecasts.py",
+    "model": "chronos2",
+    "device": "auto",
+    "series_batch_size": {
+      "fred_md": 128,
+      "electricity": 64,
+      "traffic": 32
+    }
+  },
+  "overlay_stage": {
+    "script": "benchmarks/run_real_data.py",
+    "historical_dataset_key_mapping": {
+      "electricity_cached": "Electricity Hourly",
+      "fred_md": "FRED-MD",
+      "traffic": "Traffic Hourly"
+    },
+    "evaluation_grid_size": 19,
+    "sct": {
+      "train_grid_size": 49,
+      "hourly": {
+        "rho": 0.99,
+        "n_eff_min": 50,
+        "step_schedule": "min(0.20, 1 / sqrt(n))",
+        "detector": {
+          "type": "CUSUMNorm",
+          "kappa": 0.02,
+          "threshold": 0.2
+        },
+        "cooldown": 168,
+        "confirm": 3
+      },
+      "monthly": {
+        "rho": 0.995,
+        "n_eff_min": 24,
+        "step_schedule": "min(0.20, 1 / sqrt(n))",
+        "detector": {
+          "type": "CUSUMNorm",
+          "kappa": 0.02,
+          "threshold": 0.2
+        },
+        "cooldown": 12,
+        "confirm": 2
+      }
+    },
+    "aci": {
+      "gamma": 0.005
+    },
+    "split_cp": {
+      "hourly_n_cal": 336,
+      "monthly_n_cal": 36
+    }
+  }
+}

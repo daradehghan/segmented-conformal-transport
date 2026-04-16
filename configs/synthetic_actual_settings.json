@@ -1,0 +1,25 @@
+{
+  "provenance": "Recovered from benchmarks/run_synthetic.py and the bundled synthetic result snapshots.",
+  "script": "benchmarks/run_synthetic.py",
+  "n_replicates": 10,
+  "seed_base": 20260306,
+  "sct": {
+    "grid_size": 49,
+    "rho": 0.99,
+    "n_eff_min": 30,
+    "step_schedule": "min(0.20, 1 / sqrt(n))",
+    "detector": {
+      "type": "CUSUMNorm",
+      "kappa": 0.02,
+      "threshold": 0.2
+    },
+    "cooldown": 100,
+    "confirm": 3
+  },
+  "aci": {
+    "gamma": 0.005
+  },
+  "split_cp": {
+    "n_cal": 300
+  }
+}

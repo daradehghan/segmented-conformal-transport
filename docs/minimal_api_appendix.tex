@@ -1,0 +1,145 @@
+\section{Minimal \texttt{tsconformal} API specification}
+
+\subsection{Core forecast interface}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{ForecastCDF}]
+A forecast object must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{cdf(y) -> float},
+    \item \texttt{ppf(u) -> float},
+    \item \texttt{is\_discrete: bool}.
+\end{itemize}
+The method \texttt{ppf} must implement the generalized inverse used in the definition of $\widehat F_t^{-1}$.
+\end{description}
+
+\subsection{Forecast adapters}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{QuantileGridCDFAdapter}]
+The package must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{QuantileGridCDFAdapter(probabilities, quantiles)}.
+\end{itemize}
+The adapter must repair non-monotone quantile grids before exposing a \texttt{ForecastCDF}-compatible object.
+
+\item[\texttt{SampleCDFAdapter}]
+The package must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{SampleCDFAdapter(samples, smoothing="gaussian\_monotone")}.
+\end{itemize}
+The adapter must support a raw empirical step CDF and a smoothed monotone alternative. Invalid smoothed inputs such as non-finite, undersized, or degenerate sample clouds must fail cleanly.
+\end{description}
+
+\subsection{Randomized PIT interface}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{RandomizedPIT}]
+The module must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{pit(cdf: ForecastCDF, y: float, rng) -> float}.
+\end{itemize}
+If \texttt{cdf.is\_discrete} is true, then \texttt{pit} must draw the auxiliary uniform randomizer and implement the randomized PIT rule from Section~3.1.
+\end{description}
+
+\subsection{Segment detector interface}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{SegmentDetector}]
+A detector object must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{update(residual\_vector: np.ndarray) -> bool},
+    \item \texttt{state() -> Mapping[str, Any]},
+    \item \texttt{reset() -> None}.
+\end{itemize}
+The \texttt{update} method reports threshold exceedance only. Cooldown and confirmation logic remain part of the calibrator.
+\end{description}
+
+\subsection{Reference detectors}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{CUSUMNormDetector}]
+The package must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{CUSUMNormDetector(kappa: float, threshold: float)}.
+\end{itemize}
+
+\item[\texttt{PageHinkleyDetector}]
+The package may additionally expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{PageHinkleyDetector(delta: float, threshold: float)}.
+\end{itemize}
+\end{description}
+
+\subsection{Main calibrator}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{SegmentedTransportCalibrator}]
+The constructor must accept the parameters
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{grid\_size: int},
+    \item \texttt{rho: float},
+    \item \texttt{n\_eff\_min: float},
+    \item \texttt{step\_schedule: Callable[[float], float]},
+    \item \texttt{detector: SegmentDetector},
+    \item \texttt{cooldown: int},
+    \item \texttt{confirm: int},
+    \item \texttt{projection: Literal["isotonic\_l2"]},
+    \item \texttt{interpolation: Literal["piecewise\_linear"]},
+    \item \texttt{fallback: Literal["identity"]},
+    \item \texttt{warm\_start: Literal["identity"]}.
+\end{itemize}
+The public methods must include
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{predict\_cdf(base\_cdf: ForecastCDF, x\_t=None) -> ForecastCDFLike},
+    \item \texttt{update(y\_t: float, base\_cdf: ForecastCDF, rng=None) -> None}.
+\end{itemize}
+The object must also expose diagnostics
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{segment\_id},
+    \item \texttt{num\_resets},
+    \item \texttt{last\_reset\_t},
+    \item \texttt{n\_eff},
+    \item \texttt{rho},
+    \item \texttt{grid},
+    \item \texttt{in\_warmup},
+    \item \texttt{warm\_start\_weight},
+    \item \texttt{pit\_history\_tail},
+    \item \texttt{calibration\_residuals\_tail},
+    \item \texttt{warnings}.
+\end{itemize}
+\end{description}
+
+\subsection{Serialization}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{save\_calibrator} and \texttt{load\_calibrator}]
+The package must expose state save/load helpers so that online runs can be paused and resumed without discarding the current segment state.
+\end{description}
+
+\subsection{Detector sensitivity tooling}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{sensitivity\_report}]
+The package must expose
+\begin{itemize}[leftmargin=1.5em]
+    \item \texttt{sensitivity\_report(detector\_grid: List[DetectorConfig], data\_stream) -> SensitivityReport}.
+\end{itemize}
+The report must summarize reset counts, mean segment length, warm-start occupancy, and variability across nearby detector configurations.
+\end{description}
+
+\subsection{Misuse warnings}
+
+\begin{description}[leftmargin=0pt,labelindent=0pt,style=nextline]
+\item[\texttt{Warnings and refusals}]
+The implementation must warn or refuse to emit a calibrated transport map in the following cases:
+\begin{itemize}[leftmargin=1.5em]
+    \item $n_t^{\eff}<n_{\min}^{\eff}$,
+    \item excessive reset frequency over a rolling window,
+    \item high serial correlation in PIT residuals,
+    \item repeated rolling-window evidence of within-segment PIT drift,
+    \item post-reset warm-start dominance,
+    \item discrete forecasts used without randomized PIT support.
+\end{itemize}
+These warnings are part of the practical interface because each corresponds to a theorem assumption or a documented failure mode.
+\end{description}

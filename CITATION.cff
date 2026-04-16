@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: tsconformal
+message: If you use this software, please cite the companion paper and this repository snapshot.
+type: software
+authors:
+  - family-names: Dehghan
+    given-names: Dara
+repository-code: https://github.com/daradehghan/segmented-conformal-transport
+license: MIT
+version: 0.1.0
+date-released: 2026-03-30
+abstract: >
+  Segmented Conformal Transport for one-step predictive CDF recalibration
+  under nonstationarity.
+keywords:
+  - conformal prediction
+  - probabilistic forecasting
+  - time series
+  - calibration
+  - nonstationarity
