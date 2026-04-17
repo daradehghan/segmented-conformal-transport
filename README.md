@@ -4,6 +4,8 @@ This repository contains the SCT reference implementation and benchmarks.
 
 `tsconformal` implements Segmented Conformal Transport (SCT) for one-step predictive CDF recalibration under nonstationarity. The repository also contains the benchmark runners, analysis scripts, and reproducibility notes used to evaluate the method.
 
+Companion paper (preprint DOI): https://doi.org/10.13140/RG.2.2.28984.30723
+
 ## What is included
 
 The tracked tree is deliberately compact.
