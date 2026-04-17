@@ -2,6 +2,8 @@
 
 `tsconformal` implements Segmented Conformal Transport (SCT) for predictive CDF recalibration under nonstationarity.
 
+Companion paper (preprint DOI): https://doi.org/10.13140/RG.2.2.28984.30723
+
 ## Contents
 
 - [Quick Start](quickstart.md)
