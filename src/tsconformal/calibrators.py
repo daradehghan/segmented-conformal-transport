@@ -679,7 +679,7 @@ def save_calibrator(
     state = calibrator._get_state()
 
     # Separate arrays from metadata
-    arrays = {}
+    arrays: dict[str, np.ndarray[Any, Any]] = {}
     meta = {}
     for k, v in state.items():
         if isinstance(v, (list,)) and len(v) > 10:
@@ -692,7 +692,7 @@ def save_calibrator(
     array_bytes = b""
     if arrays:
         buf = io.BytesIO()
-        np.savez_compressed(cast(Any, buf), **arrays)
+        np.savez_compressed(cast(Any, buf), **cast(Any, arrays))
         array_bytes = buf.getvalue()
 
     if path.suffix == ".zip":
