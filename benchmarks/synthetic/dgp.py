@@ -11,11 +11,11 @@ G. Gradually drifting forecaster
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field, replace
-from typing import List, Tuple
+
+from dataclasses import dataclass, replace
+from typing import List
 
 import numpy as np
-from scipy.stats import norm, t as t_dist
 
 
 @dataclass
@@ -162,8 +162,6 @@ def generate_family_C(
     sigma_hat = np.ones(T_total)
     regime_ids = np.zeros(T_total, dtype=int)
 
-    # Regime 0: well-calibrated
-    s0 = T_burn
     # Regime 1: jump
     s1 = T_burn + L
     mu_hat[s1:s1 + L] = Delta_b

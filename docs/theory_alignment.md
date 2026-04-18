@@ -1,6 +1,6 @@
 # Theory Alignment
 
-This document maps `tsconformal` v0.1.0 to the verified theory in *Conformal Calibration under Nonstationarity*.
+This document maps `tsconformal` v0.2.0 to the verified theory in *Conformal Calibration under Nonstationarity*.
 
 ## Theorem scope
 
@@ -50,3 +50,9 @@ The theory assumes access to a true CDF. When using `QuantileGridCDFAdapter`:
 - `cdf(y)` is the right-continuous inverse, with `cdf_left(y)` used for randomized PIT
 - Extrapolation uses nearest non-zero slope, clipped to [0,1]
 - This is an adapter-defined pseudo-CDF, not a model-native analytic CDF
+
+## Serialized state
+
+Serialized calibrator state follows a separate compatibility contract. The
+package version changes with each public release, while the state schema changes
+only when the persisted layout or its semantics change.

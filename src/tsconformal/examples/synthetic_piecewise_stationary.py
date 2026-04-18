@@ -4,17 +4,27 @@ Demonstrates SCT on a three-regime synthetic stream with known
 miscalibration patterns.
 """
 
+from typing import TypedDict
+
 import numpy as np
 
 from tsconformal import (
     CUSUMNormDetector,
-    QuantileGridCDFAdapter,
     SegmentedTransportCalibrator,
 )
 
 
+class SyntheticRegime(TypedDict):
+    """Parameters for one synthetic regime in the example stream."""
+
+    length: int
+    bias: float
+    scale: float
+
+
 class GaussianForecastCDF:
     """Simple Gaussian forecast CDF for synthetic experiments."""
+
     is_discrete = False
 
     def __init__(self, mu: float, sigma: float):
@@ -23,12 +33,17 @@ class GaussianForecastCDF:
 
     def cdf(self, y: float) -> float:
         from scipy.stats import norm
+
         return float(norm.cdf(y, self.mu, self.sigma))
 
-    def ppf(self, u: float) -> float:
+    def ppf(self, u: float | np.ndarray) -> float | np.ndarray:
         from scipy.stats import norm
-        u = np.clip(u, 1e-12, 1 - 1e-12)
-        return float(norm.ppf(u, self.mu, self.sigma))
+
+        clipped_u = np.clip(u, 1e-12, 1 - 1e-12)
+        quantiles = norm.ppf(clipped_u, self.mu, self.sigma)
+        if np.ndim(quantiles) == 0:
+            return float(quantiles)
+        return np.asarray(quantiles, dtype=np.float64)
 
 
 def run_example(seed: int = 42, T: int = 1500):
@@ -36,20 +51,20 @@ def run_example(seed: int = 42, T: int = 1500):
     rng = np.random.default_rng(seed)
 
     # Define three regimes with different miscalibration
-    regimes = [
+    regimes: list[SyntheticRegime] = [
         {"length": 500, "bias": 0.0, "scale": 1.0},   # well-calibrated
         {"length": 500, "bias": 0.5, "scale": 0.7},    # biased + overconfident
         {"length": 500, "bias": -0.3, "scale": 1.3},   # biased + underconfident
     ]
 
     # Generate data
-    ys = []
-    forecasts = []
-    oracle_regimes = []
+    ys: list[float] = []
+    forecasts: list[GaussianForecastCDF] = []
+    oracle_regimes: list[int] = []
     for r_id, regime in enumerate(regimes):
         n = regime["length"]
-        y = rng.normal(0, 1, size=n)
-        for yi in y:
+        observations = np.asarray(rng.normal(0.0, 1.0, size=n), dtype=np.float64)
+        for yi in observations:
             # Miscalibrated forecast
             f = GaussianForecastCDF(
                 mu=regime["bias"],
@@ -72,18 +87,24 @@ def run_example(seed: int = 42, T: int = 1500):
     )
 
     # Online loop
-    pit_values = []
-    warmup_flags = []
-    ws_weights = []
-    calibrated_quantiles_list = []
+    pit_values_list: list[float] = []
+    warmup_flags: list[bool] = []
+    ws_weights: list[float] = []
+    calibrated_quantiles_list: list[np.ndarray] = []
     J_eval = 99
-    eval_grid = np.array([j / (J_eval + 1) for j in range(1, J_eval + 1)])
+    eval_grid = np.array(
+        [j / (J_eval + 1) for j in range(1, J_eval + 1)],
+        dtype=np.float64,
+    )
 
     for t in range(len(ys)):
         # Predict
         cal_cdf = cal.predict_cdf(forecasts[t])
         # Record calibrated quantiles for E_r
-        cal_q = np.array([cal_cdf.ppf(u) for u in eval_grid])
+        cal_q = np.array(
+            [float(cal_cdf.ppf(float(u))) for u in eval_grid],
+            dtype=np.float64,
+        )
         calibrated_quantiles_list.append(cal_q)
         # Track diagnostics
         warmup_flags.append(cal.in_warmup)
@@ -91,10 +112,13 @@ def run_example(seed: int = 42, T: int = 1500):
         # Update
         cal.update(ys[t], forecasts[t])
         # Record calibrated PIT
-        pit_values.append(cal_cdf.cdf(ys[t]))
+        pit_values_list.append(float(cal_cdf.cdf(float(ys[t]))))
 
-    pit_values = np.array(pit_values)
-    calibrated_quantiles = np.array(calibrated_quantiles_list)
+    pit_values = np.asarray(pit_values_list, dtype=np.float64)
+    calibrated_quantiles = np.asarray(
+        calibrated_quantiles_list,
+        dtype=np.float64,
+    )
 
     # Summary
     print(f"Total timestamps: {len(ys)}")

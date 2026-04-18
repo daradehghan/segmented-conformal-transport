@@ -8,18 +8,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import warnings
 import time
-from dataclasses import dataclass, field
+import warnings
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict
+from typing import List
 
 import numpy as np
-from scipy.stats import norm
 
-from tsconformal import (
-    QuantileGridCDFAdapter,
-)
 from tsconformal._benchmark_defaults import (
     DEFAULT_PIT_SEED,
     build_sct_calibrator,
@@ -29,11 +25,9 @@ from tsconformal.metrics import (
     gridwise_calibration_error,
     marginal_coverage,
     mean_interval_width,
-    adaptation_lag,
 )
 from tsconformal.diagnostics import (
     pit_uniformity_tests,
-    rolling_coverage,
     warm_start_occupancy,
 )
 from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
@@ -195,8 +189,10 @@ def run_aci(stream: SyntheticStream, alpha: float = 0.10) -> MethodResult:
         y_hat = stream.forecast_mu[t]  # point forecast = miscalibrated mean
         l90, u90 = aci_90.predict_interval(y_hat)
         l80, u80 = aci_80.predict_interval(y_hat)
-        lowers_90[t] = l90; uppers_90[t] = u90
-        lowers_80[t] = l80; uppers_80[t] = u80
+        lowers_90[t] = l90
+        uppers_90[t] = u90
+        lowers_80[t] = l80
+        uppers_80[t] = u80
         aci_90.update(stream.y[t], y_hat)
         aci_80.update(stream.y[t], y_hat)
 
@@ -243,8 +239,10 @@ def run_split_cp(stream: SyntheticStream, alpha: float = 0.10,
         y_hat = stream.forecast_mu[test_start + t]
         l90, u90 = cp_90.predict_interval(y_hat)
         l80, u80 = cp_80.predict_interval(y_hat)
-        lowers_90[t] = l90; uppers_90[t] = u90
-        lowers_80[t] = l80; uppers_80[t] = u80
+        lowers_90[t] = l90
+        uppers_90[t] = u90
+        lowers_80[t] = l80
+        uppers_80[t] = u80
 
     y_test = stream.y[test_start:]
     cov_90 = marginal_coverage(y_test, lowers_90, uppers_90)
@@ -281,8 +279,8 @@ def get_scenarios() -> List[dict]:
     for lam in [0.0, 0.2, 0.4]:
         scenarios.append({
             "name": f"B: L=1000, λ={lam}",
-            "gen": lambda s, l=lam: generate_family_B(
-                L=1000, lambda_r=l, phi=0.5, seed=s),
+            "gen": lambda seed, drift=lam: generate_family_B(
+                L=1000, lambda_r=drift, phi=0.5, seed=seed),
         })
 
     # Family C: abrupt change
@@ -297,8 +295,8 @@ def get_scenarios() -> List[dict]:
     for ls in [25, 100]:
         scenarios.append({
             "name": f"D: L_short={ls}",
-            "gen": lambda s, l=ls: generate_family_D(
-                L_short=l, phi=0.5, T_scored=3000, seed=s),
+            "gen": lambda seed, short_length=ls: generate_family_D(
+                L_short=short_length, phi=0.5, T_scored=3000, seed=seed),
         })
 
     # Family F: heavy tails

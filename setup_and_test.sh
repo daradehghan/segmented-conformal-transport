@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
-echo "=== tsconformal v0.1.0 setup ==="
+echo "=== tsconformal setup ==="
 
 # 1. Create virtual environment
 echo "[1/5] Creating virtual environment..."
@@ -21,6 +21,7 @@ pip install --upgrade pip --quiet
 # 3. Install package + dev dependencies
 echo "[3/5] Installing tsconformal + dev dependencies..."
 pip install -e ".[dev,plots]" --quiet
+echo "Installed tsconformal version: $(python -c 'import tsconformal; print(tsconformal.__version__)')"
 
 # 4. Run tests
 echo "[4/5] Running tests..."

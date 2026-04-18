@@ -79,7 +79,7 @@ def run_example(seed: int = 42, T: int = 500):
         try:
             base_cdf = QuantileGridCDFAdapter(probabilities=Q, quantiles=quantiles)
             validate_forecast_cdf(base_cdf)
-        except (InvalidForecastCDFError, Exception) as e:
+        except (InvalidForecastCDFError, Exception):
             # Skip-and-log policy: do not replace with fallback
             fm_failures += 1
             continue

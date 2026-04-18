@@ -8,7 +8,7 @@ by the benchmarks and diagnostics workflow.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Optional
 import warnings
 
 import numpy as np
@@ -247,7 +247,11 @@ def sensitivity_report(
         Summary of metrics across configurations.
     """
     from tsconformal._benchmark_defaults import build_sct_calibrator, make_pit_rng
-    from tsconformal.detectors import CUSUMNormDetector, PageHinkleyDetector
+    from tsconformal.detectors import (
+        CUSUMNormDetector,
+        PageHinkleyDetector,
+        SegmentDetector,
+    )
     from tsconformal.forecast import InvalidForecastCDFError
 
     # Materialize the stream once (needed for re-running per config)
@@ -260,6 +264,7 @@ def sensitivity_report(
     for config in detector_grid:
         pit_rng = make_pit_rng(pit_seed)
         # Build detector from config
+        det: SegmentDetector
         if config.detector_type == "CUSUMNorm":
             det = CUSUMNormDetector(
                 kappa=config.kappa, threshold=config.threshold
@@ -321,8 +326,12 @@ def sensitivity_report(
     # Detect shopping risk: high variability in reset counts
     if len(report.results) > 1:
         reset_counts = [r.n_resets for r in report.results]
+        reset_counts_array = np.asarray(reset_counts, dtype=np.float64)
         rc_range = max(reset_counts) - min(reset_counts)
-        rc_cv = float(np.std(reset_counts) / max(np.mean(reset_counts), 1e-8))
+        mean_reset_count = float(np.mean(reset_counts_array))
+        rc_cv = float(
+            np.std(reset_counts_array) / max(mean_reset_count, 1e-8)
+        )
         report.detector_shopping_risk = rc_cv > 0.5
         report.variability_summary = {
             "reset_count_range": float(rc_range),

@@ -45,7 +45,6 @@ def gridwise_calibration_error(
     """
     y = np.asarray(y)
     Q = np.asarray(calibrated_quantiles)
-    n = len(y)
     grid = np.array([j / (J_eval + 1) for j in range(1, J_eval + 1)])
 
     # Indicators: (n, J_eval)
