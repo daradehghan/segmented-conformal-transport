@@ -692,7 +692,7 @@ def save_calibrator(
     array_bytes = b""
     if arrays:
         buf = io.BytesIO()
-        np.savez_compressed(buf, **arrays)
+        np.savez_compressed(cast(Any, buf), **arrays)
         array_bytes = buf.getvalue()
 
     if path.suffix == ".zip":
