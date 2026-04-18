@@ -421,7 +421,7 @@ def validate_forecast_cdf(cdf: ForecastCDF) -> None:
     5. Monotonicity of cdf on probe values.
     """
     # Check ppf on probes
-    probe_values = []
+    probe_values_list: list[float] = []
     for u in _PROBE_PROBS:
         try:
             val = cdf.ppf(float(u))
@@ -429,11 +429,19 @@ def validate_forecast_cdf(cdf: ForecastCDF) -> None:
             raise InvalidForecastCDFError(
                 f"ppf({u}) raised {type(exc).__name__}: {exc}"
             ) from exc
-        if not np.isfinite(val):
-            raise InvalidForecastCDFError(f"ppf({u}) returned non-finite: {val}")
-        probe_values.append(val)
+        val_array = np.asarray(val, dtype=np.float64)
+        if val_array.ndim != 0:
+            raise InvalidForecastCDFError(
+                f"ppf({u}) returned non-scalar output for scalar input"
+            )
+        probe_value = float(val_array)
+        if not np.isfinite(probe_value):
+            raise InvalidForecastCDFError(
+                f"ppf({u}) returned non-finite: {probe_value}"
+            )
+        probe_values_list.append(probe_value)
 
-    probe_values = np.array(probe_values)
+    probe_values = np.array(probe_values_list, dtype=np.float64)
 
     # Check degenerate range
     qrange = probe_values[-1] - probe_values[0]

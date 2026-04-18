@@ -56,16 +56,16 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
 
     # Online loop — first half
     alpha = 0.10
-    covered = []
-    widths = []
+    covered: list[float] = []
+    widths: list[float] = []
     all_warnings = []
 
     for t in range(save_at):
         cdf = make_forecast(t)
         cal_cdf = cal.predict_cdf(cdf)
 
-        lower = cal_cdf.ppf(alpha / 2)
-        upper = cal_cdf.ppf(1.0 - alpha / 2)
+        lower = float(cal_cdf.ppf(alpha / 2))
+        upper = float(cal_cdf.ppf(1.0 - alpha / 2))
         cov = float(lower <= y_data[t] <= upper)
         covered.append(cov)
         widths.append(upper - lower)
@@ -74,9 +74,11 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
         if cal.warnings:
             all_warnings.extend(cal.warnings)
 
+    covered_array = np.asarray(covered, dtype=np.float64)
+    widths_array = np.asarray(widths, dtype=np.float64)
     print(f"=== Phase 1 (t=0..{save_at-1}) ===")
-    print(f"  Coverage: {np.mean(covered):.3f} (target: {1-alpha:.2f})")
-    print(f"  Mean width: {np.mean(widths):.3f}")
+    print(f"  Coverage: {np.mean(covered_array):.3f} (target: {1-alpha:.2f})")
+    print(f"  Mean width: {np.mean(widths_array):.3f}")
     print(f"  Resets: {cal.num_resets}")
     print(f"  Warnings collected: {len(all_warnings)}")
 
@@ -86,14 +88,14 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
     print(f"  Saved at t={save_at}")
 
     # Continue original for second half
-    orig_predictions = []
+    orig_predictions: list[float] = []
     for t in range(save_at, T):
         cdf = make_forecast(t)
         cal_cdf = cal.predict_cdf(cdf)
-        orig_predictions.append(cal_cdf.cdf(0.5))
+        orig_predictions.append(float(cal_cdf.cdf(0.5)))
 
-        lower = cal_cdf.ppf(alpha / 2)
-        upper = cal_cdf.ppf(1.0 - alpha / 2)
+        lower = float(cal_cdf.ppf(alpha / 2))
+        upper = float(cal_cdf.ppf(1.0 - alpha / 2))
         covered.append(float(lower <= y_data[t] <= upper))
         widths.append(upper - lower)
 
@@ -101,11 +103,11 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
 
     # Reload and continue
     cal_loaded = load_calibrator(save_dir, step_schedule=step_schedule)
-    loaded_predictions = []
+    loaded_predictions: list[float] = []
     for t in range(save_at, T):
         cdf = make_forecast(t)
         cal_cdf = cal_loaded.predict_cdf(cdf)
-        loaded_predictions.append(cal_cdf.cdf(0.5))
+        loaded_predictions.append(float(cal_cdf.cdf(0.5)))
         cal_loaded.update(y_data[t], cdf)
 
     # Verify exact continuation
@@ -118,12 +120,14 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
     print(f"  n_eff match: {abs(cal.n_eff - cal_loaded.n_eff) < 1e-10}")
 
     # Rolling coverage
-    roll_cov = rolling_coverage(np.array(covered), window=100)
+    covered_array = np.asarray(covered, dtype=np.float64)
+    widths_array = np.asarray(widths, dtype=np.float64)
+    roll_cov = rolling_coverage(covered_array, window=100)
     valid_roll = roll_cov[~np.isnan(roll_cov)]
 
     print(f"\n=== Phase 2 (t=0..{T-1}) ===")
-    print(f"  Overall coverage: {np.mean(covered):.3f}")
-    print(f"  Mean width: {np.mean(widths):.3f}")
+    print(f"  Overall coverage: {np.mean(covered_array):.3f}")
+    print(f"  Mean width: {np.mean(widths_array):.3f}")
     print(f"  Rolling coverage MAD: {np.mean(np.abs(valid_roll - (1-alpha))):.4f}")
     print(f"  Total resets: {cal.num_resets}")
 

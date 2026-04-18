@@ -12,7 +12,7 @@ import json
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import Any, Callable, List, Literal, Optional
+from typing import Any, Callable, List, Literal, Optional, cast
 
 import numpy as np
 from scipy.stats import ks_2samp
@@ -794,7 +794,7 @@ def load_calibrator(
             detector._M = det_state.get("M", 0.0)
             detector._t = det_state.get("t", 0)
         else:
-            detector = det_cls()
+            detector = cast(SegmentDetector, det_cls())
     else:
         raise ValueError(
             f"Cannot reconstruct detector type '{det_type_name}'. "
