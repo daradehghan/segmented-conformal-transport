@@ -2,11 +2,15 @@
 
 ## Installation
 
-The current public release installs from source.
+Published releases install from PyPI.
 
 ```bash
-pip install .
-# or for development:
+pip install tsconformal
+```
+
+For local development, install from a checkout.
+
+```bash
 pip install -e .
 ```
 
@@ -79,3 +83,7 @@ save_calibrator(cal, "state.zip")       # zip bundle
 # Load and continue
 cal_resumed = load_calibrator("path/to/state", step_schedule=step_schedule)
 ```
+
+Serialized calibrator state has its own schema version. We change that schema
+only when the persisted layout or its semantics change, not on every package
+release.

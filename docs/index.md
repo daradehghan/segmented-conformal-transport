@@ -15,4 +15,4 @@ Companion paper (preprint DOI): https://doi.org/10.13140/RG.2.2.28984.30723
 
 ## Version
 
-Current release: v0.1.0
+This documentation tracks `tsconformal` v0.2.0.

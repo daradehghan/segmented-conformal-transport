@@ -1,33 +1,26 @@
-"""tsconformal — Segmented Conformal Transport for predictive CDF recalibration.
+"""Segmented Conformal Transport for predictive CDF recalibration."""
 
-This package implements the SCT algorithm from the paper
-"Conformal Calibration under Nonstationarity" with a public API
-matching Appendix D of the verified manuscript.
+from __future__ import annotations
 
-Quick start::
+from importlib.metadata import PackageNotFoundError, version as _metadata_version
+from pathlib import Path
+import tomllib
 
-    from tsconformal import (
-        SegmentedTransportCalibrator,
-        CUSUMNormDetector,
-        QuantileGridCDFAdapter,
-    )
 
-    detector = CUSUMNormDetector(kappa=0.02, threshold=0.20)
-    cal = SegmentedTransportCalibrator(
-        grid_size=49,
-        rho=0.99,
-        n_eff_min=50,
-        step_schedule=lambda n: min(0.20, 1.0 / n**0.5),
-        detector=detector,
-        cooldown=168,
-        confirm=3,
-    )
+def _read_source_tree_version() -> str:
+    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        with pyproject.open("rb") as handle:
+            data = tomllib.load(handle)
+        version = data["project"]["version"]
+    except Exception:
+        return "0.0.0+unknown"
+    return str(version)
 
-    # Online loop
-    calibrated_cdf = cal.predict_cdf(base_cdf)
-    cal.update(y_t, base_cdf)
-"""
 
-__version__ = "0.1.0"
+try:
+    __version__ = _metadata_version("tsconformal")
+except PackageNotFoundError:
+    __version__ = _read_source_tree_version()
 
-from tsconformal.api import *  # noqa: F401, F403
+from tsconformal.api import *  # noqa: E402, F401, F403

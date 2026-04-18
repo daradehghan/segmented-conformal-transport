@@ -38,6 +38,12 @@ The raw benchmark input sources and expected local filenames are recorded in `da
 
 ## Installation
 
+Published releases install from PyPI.
+
+```bash
+pip install tsconformal
+```
+
 The editable install below matches the development environment.
 
 ```bash

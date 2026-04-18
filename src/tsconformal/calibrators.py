@@ -12,7 +12,7 @@ import json
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import Any, Callable, List, Literal, Mapping, Optional
+from typing import Any, Callable, List, Literal, Optional
 
 import numpy as np
 from scipy.stats import ks_2samp
@@ -26,7 +26,6 @@ from tsconformal.forecast import (
 from tsconformal.utils import (
     build_transport_map,
     clip_cdf,
-    clip_probability,
     ensure_rng,
     pav_isotonic,
 )
@@ -122,9 +121,18 @@ def _default_step(n: float) -> float:
     return min(0.20, 1.0 / max(np.sqrt(n), 1e-8))
 
 
+def _identity_transport(u):
+    return u
+
+
 _TAIL_LEN = 256
 _DEFAULT_STEP_SCHEDULE_ID = "__default__"
 _CUSTOM_STEP_SCHEDULE_ID = "__custom__"
+
+# Serialized state has its own compatibility contract. The package version may
+# advance without changing the persisted layout.
+STATE_SCHEMA_VERSION = "0.1.0"
+SUPPORTED_STATE_SCHEMA_VERSIONS = {STATE_SCHEMA_VERSION}
 
 
 def _resolve_step_schedule_id(step_schedule: Callable[[float], float]) -> str:
@@ -137,6 +145,16 @@ def _resolve_step_schedule_id(step_schedule: Callable[[float], float]) -> str:
         return str(schedule_id)
 
     return _CUSTOM_STEP_SCHEDULE_ID
+
+
+def _validate_state_schema_version(state_schema_version: Any) -> str:
+    """Accept only explicit schema versions that we know how to load."""
+    if state_schema_version not in SUPPORTED_STATE_SCHEMA_VERSIONS:
+        raise ValueError(
+            f"Unsupported state schema version {state_schema_version!r}; "
+            f"supported versions are {sorted(SUPPORTED_STATE_SCHEMA_VERSIONS)!r}."
+        )
+    return str(state_schema_version)
 
 
 class SegmentedTransportCalibrator:
@@ -196,13 +214,25 @@ class SegmentedTransportCalibrator:
         if confirm < 1:
             raise ValueError("confirm must be >= 1")
         if projection != "isotonic_l2":
-            raise ValueError(f"unsupported projection: {projection!r}; v0.1 supports only 'isotonic_l2'")
+            raise ValueError(
+                f"unsupported projection: {projection!r}; only 'isotonic_l2' "
+                "is supported."
+            )
         if interpolation != "piecewise_linear":
-            raise ValueError(f"unsupported interpolation: {interpolation!r}; v0.1 supports only 'piecewise_linear'")
+            raise ValueError(
+                f"unsupported interpolation: {interpolation!r}; only "
+                "'piecewise_linear' is supported."
+            )
         if fallback != "identity":
-            raise ValueError(f"unsupported fallback: {fallback!r}; v0.1 supports only 'identity'")
+            raise ValueError(
+                f"unsupported fallback: {fallback!r}; only 'identity' is "
+                "supported."
+            )
         if warm_start != "identity":
-            raise ValueError(f"unsupported warm_start: {warm_start!r}; v0.1 supports only 'identity'")
+            raise ValueError(
+                f"unsupported warm_start: {warm_start!r}; only 'identity' is "
+                "supported."
+            )
 
         self._grid_size = grid_size
         self._rho = rho
@@ -324,7 +354,7 @@ class SegmentedTransportCalibrator:
         base_cdf : ForecastCDF
             Base forecast for the current time step.
         x_t : ignored
-            Placeholder for covariates (unused in v0.1).
+            Placeholder for covariates (unused in the current implementation).
 
         Returns
         -------
@@ -351,8 +381,8 @@ class SegmentedTransportCalibrator:
         self._last_predict_t = self._t
 
         if self._in_fallback:
-            T = lambda u: u
-            T_inv = lambda u: u
+            T = _identity_transport
+            T_inv = _identity_transport
         else:
             T, T_inv = build_transport_map(self._grid, self._g)
 
@@ -556,7 +586,7 @@ class SegmentedTransportCalibrator:
     def _get_state(self) -> dict:
         """Return full internal state as a serializable dict."""
         return {
-            "schema_version": "0.1.0",
+            "schema_version": STATE_SCHEMA_VERSION,
             "grid_size": self._grid_size,
             "rho": self._rho,
             "n_eff_min": self._n_eff_min,
@@ -592,10 +622,7 @@ class SegmentedTransportCalibrator:
 
     def _set_state(self, state: dict) -> None:
         """Restore internal state from a dict."""
-        if state.get("schema_version") != "0.1.0":
-            raise ValueError(
-                f"Incompatible schema version: {state.get('schema_version')}"
-            )
+        _validate_state_schema_version(state.get("schema_version"))
         self._t = state["t"]
         self._segment_id = state["segment_id"]
         self._num_resets = state["num_resets"]
@@ -741,10 +768,7 @@ def load_calibrator(
         state[k] = v.tolist()
 
     # Validate schema
-    if state.get("schema_version") != "0.1.0":
-        raise ValueError(
-            f"Incompatible schema version: {state.get('schema_version')}"
-        )
+    _validate_state_schema_version(state.get("schema_version"))
 
     # Reconstruct detector
     det_state = state.get("detector_state", {})
