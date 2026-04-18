@@ -40,7 +40,9 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
         return GaussianForecastCDF(mu=0.3, sigma=0.8)
 
     # Create calibrator
-    step_schedule = lambda n: min(0.20, 1.0 / max(n ** 0.5, 1e-8))
+    def step_schedule(n):
+        return min(0.20, 1.0 / max(n**0.5, 1e-8))
+
     detector = CUSUMNormDetector(kappa=0.02, threshold=0.20)
     cal = SegmentedTransportCalibrator(
         grid_size=19,
@@ -109,7 +111,7 @@ def run_example(seed: int = 42, T: int = 600, save_at: int = 300):
     # Verify exact continuation
     assert_allclose(orig_predictions, loaded_predictions, atol=1e-10,
                     err_msg="Loaded calibrator diverged!")
-    print(f"\n=== Serialization verification ===")
+    print("\n=== Serialization verification ===")
     print(f"  Predictions match: YES (max diff: {np.max(np.abs(np.array(orig_predictions) - np.array(loaded_predictions))):.2e})")
     print(f"  segment_id match: {cal.segment_id == cal_loaded.segment_id}")
     print(f"  num_resets match: {cal.num_resets == cal_loaded.num_resets}")

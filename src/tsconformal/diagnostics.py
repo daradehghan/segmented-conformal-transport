@@ -8,7 +8,7 @@ by the benchmarks and diagnostics workflow.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Optional
 import warnings
 
 import numpy as np

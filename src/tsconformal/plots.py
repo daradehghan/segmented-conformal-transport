@@ -130,8 +130,11 @@ def lag_vs_width(
     plt = _get_plt()
     if ax is None:
         _, ax = plt.subplots()
-    max_lag = max(l for l in adaptation_lags if l is not None) * 1.2 if any(
-        l is not None for l in adaptation_lags) else 100
+    max_lag = (
+        max(lag_value for lag_value in adaptation_lags if lag_value is not None) * 1.2
+        if any(lag_value is not None for lag_value in adaptation_lags)
+        else 100
+    )
     for i, name in enumerate(method_names):
         lag = adaptation_lags[i] if adaptation_lags[i] is not None else max_lag
         marker = "o" if adaptation_lags[i] is not None else "x"

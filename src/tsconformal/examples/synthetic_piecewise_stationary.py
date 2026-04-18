@@ -8,7 +8,6 @@ import numpy as np
 
 from tsconformal import (
     CUSUMNormDetector,
-    QuantileGridCDFAdapter,
     SegmentedTransportCalibrator,
 )
 

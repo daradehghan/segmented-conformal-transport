@@ -33,7 +33,12 @@ except ImportError:
             return f
         return dec
 
-    settings = lambda **kw: lambda f: f
+    def settings(**kw):
+        def decorator(func):
+            return func
+
+        return decorator
+
     st = None
 
     def assume(x):

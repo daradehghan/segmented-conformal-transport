@@ -163,11 +163,11 @@ def run_aci_on_cached(
     for t, fc in enumerate(forecasts):
         idx = t - eval_start
         y_hat = np.median(fc["quantiles"])
-        l, u = aci.predict_interval(y_hat)
+        lower, upper = aci.predict_interval(y_hat)
         if idx >= 0:
             y_true[idx] = fc["y_true"]
-            lo[idx] = l
-            hi[idx] = u
+            lo[idx] = lower
+            hi[idx] = upper
         aci.update(fc["y_true"], y_hat)
     return {
         "method": "ACI",
@@ -553,7 +553,7 @@ def run_benchmark(pit_seed: int = DEFAULT_PIT_SEED) -> None:
             .median()
             .round(4)
         )
-        print(f"\n=== HEADLINE TABLE ===", flush=True)
+        print("\n=== HEADLINE TABLE ===", flush=True)
         print(summary.to_string(), flush=True)
 
 
