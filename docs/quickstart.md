@@ -2,7 +2,7 @@
 
 ## Installation
 
-Published releases install from PyPI.
+The published package installs directly from PyPI.
 
 ```bash
 pip install tsconformal
