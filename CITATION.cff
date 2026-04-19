@@ -7,7 +7,7 @@ authors:
     given-names: Dara
 repository-code: https://github.com/daradehghan/segmented-conformal-transport
 license: MIT
-version: 0.2.0rc2
+version: 0.2.0
 date-released: 2026-04-19
 abstract: >
   Segmented Conformal Transport for one-step predictive CDF recalibration
