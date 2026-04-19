@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0rc1 - 2026-04-19
+## 0.2.0rc2 - 2026-04-19
 
 ### Added
 
@@ -24,3 +24,6 @@
 
 - Local setup output now derives the installed package version at runtime
   instead of printing a hard-coded string.
+- Release publishing now pins `pypa/gh-action-pypi-publish` to the resolved
+  release commit so tag-based publication can pull the published container
+  image.
