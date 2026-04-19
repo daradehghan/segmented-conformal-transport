@@ -6,6 +6,8 @@ This repository contains the SCT reference implementation and benchmarks.
 
 Companion paper (preprint DOI): https://doi.org/10.13140/RG.2.2.28984.30723
 
+The package is now published on PyPI as `tsconformal`.
+
 ## What is included
 
 The tracked tree is deliberately compact.
@@ -38,7 +40,7 @@ The raw benchmark input sources and expected local filenames are recorded in `da
 
 ## Installation
 
-Published releases install from PyPI.
+The package now installs directly from PyPI.
 
 ```bash
 pip install tsconformal

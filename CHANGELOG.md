@@ -4,6 +4,7 @@
 
 ### Added
 
+- First public PyPI release of `tsconformal`.
 - Tag-driven release automation for TestPyPI, PyPI, and GitHub Releases.
 - Release metadata validation via `scripts/check_release_version.py`.
 - State-schema compatibility tests backed by a pinned serialized-state fixture.
