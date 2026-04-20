@@ -218,6 +218,15 @@ class TestNoLookahead:
         with pytest.raises(ValueError, match="delta must be finite and non-negative"):
             PageHinkleyDetector(delta=-0.01, threshold=0.5)
 
+    def test_page_hinkley_rejects_non_finite_or_non_positive_threshold(self):
+        """PageHinkleyDetector must reject invalid thresholds explicitly."""
+        import pytest
+        from tsconformal.detectors import PageHinkleyDetector
+
+        for threshold in (np.nan, np.inf, 0.0):
+            with pytest.raises(ValueError, match="threshold must be finite and positive"):
+                PageHinkleyDetector(delta=0.01, threshold=threshold)
+
     def test_cusum_rejects_non_finite_parameters(self):
         """CUSUMNormDetector must reject non-finite tuning parameters."""
         import pytest
