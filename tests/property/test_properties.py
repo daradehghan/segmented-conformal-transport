@@ -218,6 +218,15 @@ class TestNoLookahead:
         with pytest.raises(ValueError, match="delta must be finite and non-negative"):
             PageHinkleyDetector(delta=-0.01, threshold=0.5)
 
+    def test_page_hinkley_rejects_non_finite_or_non_positive_threshold(self):
+        """PageHinkleyDetector must reject invalid thresholds explicitly."""
+        import pytest
+        from tsconformal.detectors import PageHinkleyDetector
+
+        for threshold in (np.nan, np.inf, 0.0):
+            with pytest.raises(ValueError, match="threshold must be finite and positive"):
+                PageHinkleyDetector(delta=0.01, threshold=threshold)
+
     def test_cusum_rejects_non_finite_parameters(self):
         """CUSUMNormDetector must reject non-finite tuning parameters."""
         import pytest
@@ -316,11 +325,63 @@ class TestWarningContracts:
         )
 
         cal.predict_cdf(cdf)
+        before = cal._get_state()
         with pytest.raises(
             DiscreteForecastWithoutRandomizedPITError,
             match="requires rng for randomized PIT",
         ):
             cal.update(1.0, cdf)
+        assert cal._get_state() == before
+
+    def test_non_finite_outcome_leaves_update_state_unchanged(self):
+        """Non-finite observed outcomes must be rejected atomically."""
+        import pytest
+        from tsconformal import CUSUMNormDetector, SegmentedTransportCalibrator
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cdf = GaussianForecastCDF(0.0, 1.0)
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+
+        cal.predict_cdf(cdf)
+        before = cal._get_state()
+        with pytest.raises(ValueError, match="y_t must be finite"):
+            cal.update(np.nan, cdf)
+        assert cal._get_state() == before
+
+    def test_non_finite_pit_leaves_update_state_unchanged(self, monkeypatch):
+        """Invalid PIT output must be rejected before any state mutation."""
+        import pytest
+        from tsconformal import CUSUMNormDetector, SegmentedTransportCalibrator
+        from tsconformal.calibrators import RandomizedPIT
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+        from tsconformal.forecast import InvalidForecastCDFError
+
+        cdf = GaussianForecastCDF(0.0, 1.0)
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+
+        monkeypatch.setattr(RandomizedPIT, "pit", staticmethod(lambda *_args, **_kwargs: np.nan))
+
+        cal.predict_cdf(cdf)
+        before = cal._get_state()
+        with pytest.raises(InvalidForecastCDFError, match="non-finite"):
+            cal.update(0.0, cdf)
+        assert cal._get_state() == before
 
     def test_invalid_forecast_warning_is_emitted(self):
         """Borderline invalid forecasts must emit InvalidForecastCDFWarning."""

@@ -153,8 +153,8 @@ class PageHinkleyDetector:
     def __init__(self, delta: float = 0.01, threshold: float = 0.50):
         if not np.isfinite(delta) or delta < 0:
             raise ValueError("delta must be finite and non-negative")
-        if threshold <= 0:
-            raise ValueError("threshold must be positive")
+        if not np.isfinite(threshold) or threshold <= 0:
+            raise ValueError("threshold must be finite and positive")
         self.delta = delta
         self.threshold = threshold
         self._m: float = 0.0
