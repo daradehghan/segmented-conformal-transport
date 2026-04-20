@@ -2,14 +2,23 @@
 
 ## Project posture
 
-This repository is currently maintained as a single-maintainer research software
-project. External contributions are therefore limited and remain entirely at the
-maintainer's discretion.
+This is a research software project with an open contribution process.
+Well-scoped bug reports, documentation corrections, tests, and targeted
+implementation fixes are welcome.
 
-Well-scoped bug reports, documentation corrections, and narrowly targeted
-improvements are the most useful forms of outside input. Large unsolicited
-feature additions, broad refactors, and workflow changes are unlikely to be
-accepted unless they are discussed in advance.
+Large feature additions, broad refactors, and workflow changes should be
+discussed in advance. That keeps the review scope explicit and reduces
+avoidable rework.
+
+## Review process
+
+Issues and pull requests are the public review record for the project. Proposed
+changes are reviewed for correctness, reproducibility, documentation
+consistency, and scope fit.
+
+Changes that affect paper-facing behavior, benchmark settings, or serialized
+state semantics should make that effect explicit in the issue or pull request
+discussion.
 
 ## Before opening a pull request
 
