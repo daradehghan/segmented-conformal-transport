@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.1 - 2026-04-20
+
+Correctness and engineering hardening release.
+
+### Fixed
+
+- Made `SegmentedTransportCalibrator.update()` fail atomically when validation
+  fails.
+- Added explicit rejection of non-finite observed outcomes and invalid PIT
+  values.
+- Tightened `PageHinkleyDetector` threshold validation to require finite
+  positive thresholds.
+
+### CI
+
+- Made mypy type checking blocking in CI and release workflows.
+
 ## 0.2.0 - 2026-04-19
 
 ### Added
