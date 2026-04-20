@@ -17,6 +17,7 @@ from tsconformal.calibrators import (
     ExcessiveResetWarning,
     HighSerialCorrelationWarning,
     LowEffectiveSampleWarning,
+    PredictionSequenceError,
     RandomizedPIT,
     SegmentedTransportCalibrator,
     WarmStartDominanceWarning,
@@ -66,4 +67,5 @@ __all__ = [
     "WithinSegmentDriftWarning",
     "WarmStartDominanceWarning",
     "DiscreteForecastWithoutRandomizedPITError",
+    "PredictionSequenceError",
 ]

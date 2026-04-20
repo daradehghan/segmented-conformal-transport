@@ -60,6 +60,10 @@ class DiscreteForecastWithoutRandomizedPITError(Exception):
     """Discrete forecast used without randomized PIT support."""
 
 
+class PredictionSequenceError(RuntimeError):
+    """Invalid ``predict_cdf()``/``update()`` call sequence."""
+
+
 # -----------------------------------------------------------------------
 # RandomizedPIT
 # -----------------------------------------------------------------------
@@ -253,6 +257,7 @@ class SegmentedTransportCalibrator:
 
         # Initialize state
         self._reset_state(initial=True)
+        self._reset_prediction_sequence_state()
 
     def _reset_state(self, initial: bool = False) -> None:
         """Reset all segment-local state."""
@@ -278,6 +283,20 @@ class SegmentedTransportCalibrator:
         if initial:
             self._reset_times: deque = deque(maxlen=_TAIL_LEN)
         # Don't clear reset_times on segment reset — it's global
+
+    def _reset_prediction_sequence_state(self) -> None:
+        """Initialize transient predict/update sequencing state."""
+        self._pending_predict_cdf_id: int | None = None
+        self._pending_predict_t: int | None = None
+        self._last_consumed_predict_cdf_id: int | None = None
+        self._superseded_predict_cdf_ids: set[int] = set()
+
+    def _consume_pending_prediction(self) -> None:
+        """Mark the current pending prediction as consumed."""
+        self._last_consumed_predict_cdf_id = self._pending_predict_cdf_id
+        self._pending_predict_cdf_id = None
+        self._pending_predict_t = None
+        self._superseded_predict_cdf_ids.clear()
 
     # -------------------------------------------------------------------
     # Public properties (Appendix D diagnostics)
@@ -364,10 +383,10 @@ class SegmentedTransportCalibrator:
 
         Notes
         -----
-        The method records the identity of ``base_cdf`` and the current
-        time index so that ``update()`` can issue its heuristic
-        consistency warning when a different forecast object is supplied.
-        It does not consume ``y_t`` or change the transport map itself.
+        The method records a pending prediction for the current time step.
+        A later ``predict_cdf()`` call supersedes any earlier pending
+        prediction before ``update()`` consumes it. The method does not
+        consume ``y_t`` or change the transport map itself.
 
         Raises
         ------
@@ -377,9 +396,13 @@ class SegmentedTransportCalibrator:
         # Validate before consuming
         validate_forecast_cdf(base_cdf)
 
-        # Cache fingerprint for update consistency check
-        self._last_predict_cdf_id = id(base_cdf)
-        self._last_predict_t = self._t
+        if self._pending_predict_cdf_id is not None:
+            self._superseded_predict_cdf_ids.add(self._pending_predict_cdf_id)
+
+        pending_cdf_id = id(base_cdf)
+        self._pending_predict_cdf_id = pending_cdf_id
+        self._pending_predict_t = self._t
+        self._superseded_predict_cdf_ids.discard(pending_cdf_id)
 
         if self._in_fallback:
             T = _identity_transport
@@ -411,16 +434,46 @@ class SegmentedTransportCalibrator:
 
         Notes
         -----
-        The implementation warns when ``base_cdf`` is a different Python
-        object from the one passed to ``predict_cdf``. That is a heuristic
-        misuse check, not a full prediction-equivalence test.
+        The implementation raises ``PredictionSequenceError`` on clear
+        sequencing violations such as ``update()`` without a pending
+        prediction, repeated ``update()`` after a prediction has already
+        been consumed, or use of a superseded pending forecast. It still
+        warns on ambiguous forecast-object mismatches, because object
+        identity is only a heuristic consistency check.
         """
-        # Warn on a mismatched forecast object. This is a heuristic
-        # consistency check rather than a full prediction-equivalence test.
-        if (hasattr(self, '_last_predict_cdf_id')
-                and id(base_cdf) != self._last_predict_cdf_id):
+        base_cdf_id = id(base_cdf)
+        pending_cdf_id = self._pending_predict_cdf_id
+
+        if pending_cdf_id is None:
+            if base_cdf_id == self._last_consumed_predict_cdf_id:
+                raise PredictionSequenceError(
+                    "update() called after the pending prediction had already been "
+                    "consumed; call predict_cdf() before updating again."
+                )
+            raise PredictionSequenceError(
+                "update() called without a pending prediction; call "
+                "predict_cdf() before update()."
+            )
+
+        if base_cdf_id in self._superseded_predict_cdf_ids:
+            raise PredictionSequenceError(
+                "update() called with a superseded base_cdf; use the most "
+                f"recent forecast issued by predict_cdf() for t={self._pending_predict_t}."
+            )
+
+        if (
+            base_cdf_id == self._last_consumed_predict_cdf_id
+            and base_cdf_id != pending_cdf_id
+        ):
+            raise PredictionSequenceError(
+                "update() called with a prediction that has already been "
+                "consumed; call predict_cdf() before updating again."
+            )
+
+        if base_cdf_id != pending_cdf_id:
             warnings.warn(
-                "update() called with a different base_cdf than predict_cdf(). "
+                "update() called with a different base_cdf than predict_cdf() "
+                f"for the current pending prediction at t={self._pending_predict_t}. "
                 "Reuse the forecast used to issue the prediction; this "
                 "object-identity check is only a heuristic consistency guard.",
                 RuntimeWarning,
@@ -491,6 +544,7 @@ class SegmentedTransportCalibrator:
                 LowEffectiveSampleWarning,
                 stacklevel=2,
             )
+            self._consume_pending_prediction()
             return
 
         # Feedback smoothing: convex combination
@@ -506,6 +560,7 @@ class SegmentedTransportCalibrator:
 
         # Misuse warnings
         self._check_warnings()
+        self._consume_pending_prediction()
 
     def _do_reset(self) -> None:
         """Execute a confirmed reset."""
@@ -631,6 +686,7 @@ class SegmentedTransportCalibrator:
     def _set_state(self, state: dict) -> None:
         """Restore internal state from a dict."""
         _validate_state_schema_version(state.get("schema_version"))
+        self._reset_prediction_sequence_state()
         self._t = state["t"]
         self._segment_id = state["segment_id"]
         self._num_resets = state["num_resets"]
