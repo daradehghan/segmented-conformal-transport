@@ -545,6 +545,182 @@ class TestWarningContracts:
         ):
             cal.update(0.0, second)
 
+    def test_update_without_pending_prediction_raises(self):
+        import pytest
+
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            SegmentedTransportCalibrator,
+        )
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        cdf = GaussianForecastCDF(0.0, 1.0)
+
+        with pytest.raises(
+            PredictionSequenceError,
+            match="without a pending prediction",
+        ):
+            cal.update(0.0, cdf)
+
+    def test_double_update_raises_sequence_error(self):
+        import pytest
+
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            SegmentedTransportCalibrator,
+        )
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        cdf = GaussianForecastCDF(0.0, 1.0)
+
+        cal.predict_cdf(cdf)
+        cal.update(0.0, cdf)
+
+        with pytest.raises(
+            PredictionSequenceError,
+            match="already been consumed",
+        ):
+            cal.update(0.1, cdf)
+
+    def test_superseded_prediction_raises_sequence_error(self):
+        import pytest
+
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            SegmentedTransportCalibrator,
+        )
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        first = GaussianForecastCDF(0.0, 1.0)
+        second = GaussianForecastCDF(0.1, 1.0)
+
+        cal.predict_cdf(first)
+        cal.predict_cdf(second)
+
+        with pytest.raises(
+            PredictionSequenceError,
+            match="superseded base_cdf",
+        ):
+            cal.update(0.0, first)
+
+    def test_latest_prediction_after_supersession_succeeds(self):
+        from tsconformal import CUSUMNormDetector, SegmentedTransportCalibrator
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        first = GaussianForecastCDF(0.0, 1.0)
+        second = GaussianForecastCDF(0.1, 1.0)
+
+        cal.predict_cdf(first)
+        cal.predict_cdf(second)
+        cal.update(0.0, second)
+
+        assert cal._pending_predict_cdf_id is None
+        assert cal._pending_predict_t is None
+
+    def test_failed_validation_does_not_consume_pending_prediction(self):
+        import pytest
+
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            SegmentedTransportCalibrator,
+        )
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        cdf = GaussianForecastCDF(0.0, 1.0)
+
+        cal.predict_cdf(cdf)
+        with pytest.raises(ValueError, match="y_t must be finite"):
+            cal.update(np.nan, cdf)
+
+        cal.update(0.0, cdf)
+
+        with pytest.raises(
+            PredictionSequenceError,
+            match="already been consumed",
+        ):
+            cal.update(0.1, cdf)
+
+    def test_consumed_prediction_raises_while_new_prediction_is_pending(self):
+        import pytest
+
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            SegmentedTransportCalibrator,
+        )
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+        first = GaussianForecastCDF(0.0, 1.0)
+        second = GaussianForecastCDF(0.1, 1.0)
+
+        cal.predict_cdf(first)
+        cal.update(0.0, first)
+        cal.predict_cdf(second)
+
+        with pytest.raises(
+            PredictionSequenceError,
+            match="already been consumed",
+        ):
+            cal.update(0.0, first)
+
 
 # -----------------------------------------------------------------------
 # F. Adapter extrapolation clipping
@@ -992,6 +1168,40 @@ class TestSerializationRoundTrip:
 
         cal_loaded = load_calibrator(save_path, step_schedule=step_schedule)
         assert cal_loaded._step_schedule(10.0) == step_schedule(10.0)
+
+    def test_pending_prediction_state_is_not_serialized(self, tmp_path):
+        """Loaded calibrators should not resume with an in-flight prediction."""
+        import pytest
+        from tsconformal import (
+            CUSUMNormDetector,
+            PredictionSequenceError,
+            QuantileGridCDFAdapter,
+            SegmentedTransportCalibrator,
+            load_calibrator,
+            save_calibrator,
+        )
+
+        cdf = QuantileGridCDFAdapter([0.1, 0.5, 0.9], [-1.0, 0.0, 1.0])
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(),
+            cooldown=5,
+            confirm=1,
+        )
+
+        cal.predict_cdf(cdf)
+        save_path = tmp_path / "pending_state.zip"
+        save_calibrator(cal, save_path)
+
+        cal_loaded = load_calibrator(save_path, step_schedule=lambda n: 0.1)
+        with pytest.raises(
+            PredictionSequenceError,
+            match="without a pending prediction",
+        ):
+            cal_loaded.update(0.0, cdf)
 
     def test_transport_ppf_propagates_unexpected_base_errors(self):
         """Unexpected adapter errors must not be masked by a scalar fallback."""
