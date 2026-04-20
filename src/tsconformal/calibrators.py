@@ -20,6 +20,7 @@ from scipy.stats import ks_2samp
 from tsconformal.detectors import SegmentDetector
 from tsconformal.forecast import (
     ForecastCDF,
+    InvalidForecastCDFError,
     TransportedForecastCDF,
     validate_forecast_cdf,
 )
@@ -426,8 +427,8 @@ class SegmentedTransportCalibrator:
                 stacklevel=2,
             )
 
-        self._t += 1
-        self._warnings_list.clear()
+        if not np.isfinite(y_t):
+            raise ValueError("y_t must be finite")
 
         # Check discrete forecast without RNG
         if base_cdf.is_discrete and rng is None:
@@ -437,6 +438,13 @@ class SegmentedTransportCalibrator:
 
         # Compute PIT
         U_t = RandomizedPIT.pit(base_cdf, y_t, rng)
+        if not np.isfinite(U_t):
+            raise InvalidForecastCDFError(f"RandomizedPIT.pit returned non-finite: {U_t}")
+        if U_t < 0.0 or U_t > 1.0:
+            raise InvalidForecastCDFError(f"RandomizedPIT.pit returned out-of-range value: {U_t}")
+
+        self._t += 1
+        self._warnings_list.clear()
         self._pit_history.append(U_t)
 
         # Compute detector residuals: r_{t,j} = 1{U_t <= u_j} - g_{j}

@@ -325,11 +325,63 @@ class TestWarningContracts:
         )
 
         cal.predict_cdf(cdf)
+        before = cal._get_state()
         with pytest.raises(
             DiscreteForecastWithoutRandomizedPITError,
             match="requires rng for randomized PIT",
         ):
             cal.update(1.0, cdf)
+        assert cal._get_state() == before
+
+    def test_non_finite_outcome_leaves_update_state_unchanged(self):
+        """Non-finite observed outcomes must be rejected atomically."""
+        import pytest
+        from tsconformal import CUSUMNormDetector, SegmentedTransportCalibrator
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+
+        cdf = GaussianForecastCDF(0.0, 1.0)
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+
+        cal.predict_cdf(cdf)
+        before = cal._get_state()
+        with pytest.raises(ValueError, match="y_t must be finite"):
+            cal.update(np.nan, cdf)
+        assert cal._get_state() == before
+
+    def test_non_finite_pit_leaves_update_state_unchanged(self, monkeypatch):
+        """Invalid PIT output must be rejected before any state mutation."""
+        import pytest
+        from tsconformal import CUSUMNormDetector, SegmentedTransportCalibrator
+        from tsconformal.calibrators import RandomizedPIT
+        from tsconformal.examples.synthetic_piecewise_stationary import GaussianForecastCDF
+        from tsconformal.forecast import InvalidForecastCDFError
+
+        cdf = GaussianForecastCDF(0.0, 1.0)
+        cal = SegmentedTransportCalibrator(
+            grid_size=5,
+            rho=0.9,
+            n_eff_min=1.0,
+            step_schedule=lambda n: 0.1,
+            detector=CUSUMNormDetector(kappa=0.02, threshold=10.0),
+            cooldown=100,
+            confirm=3,
+        )
+
+        monkeypatch.setattr(RandomizedPIT, "pit", staticmethod(lambda *_args, **_kwargs: np.nan))
+
+        cal.predict_cdf(cdf)
+        before = cal._get_state()
+        with pytest.raises(InvalidForecastCDFError, match="non-finite"):
+            cal.update(0.0, cdf)
+        assert cal._get_state() == before
 
     def test_invalid_forecast_warning_is_emitted(self):
         """Borderline invalid forecasts must emit InvalidForecastCDFWarning."""
