@@ -42,6 +42,7 @@ Issues = "https://github.com/daradehghan/segmented-conformal-transport/issues"
 Documentation = "https://github.com/daradehghan/segmented-conformal-transport/tree/main/docs"
 
 [project.optional-dependencies]
+diagnostics = ["statsmodels>=0.14"]
 plots = ["matplotlib>=3.7", "statsmodels>=0.14"]
 detectors = ["ruptures>=1.1"]
 fm = [

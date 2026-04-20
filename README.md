@@ -46,14 +46,21 @@ The package now installs directly from PyPI.
 pip install tsconformal
 ```
 
+Optional extras are grouped by feature:
+
+- `pip install "tsconformal[diagnostics]"` for diagnostics helpers that use `statsmodels`
+- `pip install "tsconformal[plots]"` for plotting support; this extra still includes diagnostics dependencies for compatibility
+- `pip install "tsconformal[detectors]"` for optional detector-related tooling
+- `pip install "tsconformal[fm]"` for foundation-model forecast caching helpers
+
 The editable install below matches the development environment.
 
 ```bash
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip setuptools wheel
-pip install -e ".[plots,dev]"
-pip install ruptures statsmodels "chronos-forecasting>=2.0" torch
+pip install -e ".[plots,diagnostics,dev]"
+pip install -e ".[detectors,fm]"
 ```
 
 ## Minimal package example

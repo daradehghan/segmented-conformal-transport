@@ -2,6 +2,13 @@
 
 This page records the root-package public surface exposed by `import tsconformal`.
 
+## Optional extras
+
+- `tsconformal[diagnostics]` — installs `statsmodels` for diagnostics helpers such as `pit_uniformity_tests`
+- `tsconformal[plots]` — installs plotting support; this extra still includes diagnostics dependencies for compatibility
+- `tsconformal[detectors]` — installs optional detector-related tooling
+- `tsconformal[fm]` — installs foundation-model forecast caching dependencies
+
 ## Forecast interfaces
 
 ### `ForecastCDF` (Protocol)
