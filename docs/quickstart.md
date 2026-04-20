@@ -8,10 +8,16 @@ The published package installs directly from PyPI.
 pip install tsconformal
 ```
 
+Install the diagnostics extra if you want PIT diagnostics backed by `statsmodels`.
+
+```bash
+pip install "tsconformal[diagnostics]"
+```
+
 For local development, install from a checkout.
 
 ```bash
-pip install -e .
+pip install -e ".[diagnostics]"
 ```
 
 ## Basic Usage
