@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.2rc1 - 2026-04-20
+
+Release candidate for stricter predict/update sequencing enforcement.
+
+### Changed
+
+- `SegmentedTransportCalibrator` now enforces the intended `predict_cdf()` /
+  `update()` sequencing contract more strictly.
+- `update()` now raises `PredictionSequenceError` for clear sequencing misuse,
+  including calls without a pending prediction, repeated updates after a
+  prediction has already been consumed, and updates using a forecast id known
+  to have been superseded.
+- Ambiguous forecast-object mismatches remain warning-only under the existing
+  heuristic object-identity check.
+- Pending prediction bookkeeping remains transient and is not serialized with
+  calibrator state.
+
 ## 0.2.1 - 2026-04-20
 
 Correctness and engineering hardening release.
