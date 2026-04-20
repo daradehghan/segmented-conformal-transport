@@ -1,6 +1,6 @@
 # Theory Alignment
 
-This document maps `tsconformal` v0.2.1 to the verified theory in *Conformal Calibration under Nonstationarity*.
+This document maps `tsconformal` v0.2.2rc1 to the verified theory in *Conformal Calibration under Nonstationarity*.
 
 ## Theorem scope
 
