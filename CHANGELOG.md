@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Adopt a PEP 440 development, release-candidate, and final-release
+  versioning policy.
+
 ## 0.2.2 - 2026-04-20
 
 Stable release for stricter predict/update sequencing enforcement.
